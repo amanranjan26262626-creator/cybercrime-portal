@@ -33,13 +33,18 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Cybercrime Portal API is running' });
 });
 
-// Routes will be added here
-// app.use('/api/auth', authRoutes);
-// app.use('/api/complaints', complaintRoutes);
-// app.use('/api/police', policeRoutes);
-// app.use('/api/admin', adminRoutes);
-// app.use('/api/chatbot', chatbotRoutes);
-// app.use('/api/fir', firRoutes);
+// Routes
+import authRoutes from './routes/auth';
+import complaintRoutes from './routes/complaints';
+import policeRoutes from './routes/police';
+import chatbotRoutes from './routes/chatbot';
+import firRoutes from './routes/fir';
+
+app.use('/api/auth', authRoutes);
+app.use('/api/complaints', complaintRoutes);
+app.use('/api/police', policeRoutes);
+app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/fir', firRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
