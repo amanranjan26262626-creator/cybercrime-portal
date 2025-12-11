@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { connectWallet, switchToPolygonMumbai } from '@/lib/web3';
 
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 export const useWallet = () => {
   const [address, setAddress] = useState<string>('');
   const [isConnected, setIsConnected] = useState(false);

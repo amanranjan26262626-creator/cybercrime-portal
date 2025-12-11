@@ -1,6 +1,12 @@
 import { ethers } from 'ethers';
 import { CONTRACT_ADDRESS, POLYGON_RPC } from './constants';
 
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
+
 // Contract ABI (will be updated after deployment)
 const CONTRACT_ABI = [
   'function submitComplaint(string memory ipfsHash, uint8 severity) external returns (uint256)',
@@ -37,6 +43,10 @@ export const getContract = async (): Promise<ethers.Contract> => {
 };
 
 export const switchToPolygonMumbai = async (): Promise<void> => {
+  if (typeof window === 'undefined' || !window.ethereum) {
+    throw new Error('MetaMask not found');
+  }
+  
   try {
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
