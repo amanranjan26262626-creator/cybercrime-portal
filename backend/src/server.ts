@@ -39,12 +39,14 @@ import complaintRoutes from './routes/complaints';
 import policeRoutes from './routes/police';
 import chatbotRoutes from './routes/chatbot';
 import firRoutes from './routes/fir';
+import adminRoutes from './routes/admin';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/police', policeRoutes);
 app.use('/api/chatbot', chatbotRoutes);
 app.use('/api/fir', firRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use(errorHandler);
