@@ -4,6 +4,8 @@ import { generateComplaintNumber } from '../utils/helpers';
 import { severityService } from './severityService';
 import { ipfsService } from './ipfsService';
 import { blockchainService } from './blockchainService';
+import { firebaseService } from './firebaseService';
+import { hyperledgerService } from './hyperledgerService';
 import { Conversation } from '../models/Conversation';
 import logger from '../utils/logger';
 
@@ -19,7 +21,7 @@ export interface CreateComplaintData {
 export const complaintService = {
   async createComplaint(data: CreateComplaintData): Promise<Complaint> {
     try {
-      // Upload evidence to IPFS
+      // Upload evidence to IPFS and Firebase (dual storage)
       let ipfsHash = '';
       if (data.evidence_files && data.evidence_files.length > 0) {
         const files = data.evidence_files.map(f => ({
@@ -28,6 +30,16 @@ export const complaintService = {
         }));
         const hashes = await ipfsService.uploadMultipleFiles(files);
         ipfsHash = hashes[0]; // Use first file hash as main hash
+        
+        // Also upload to Firebase as backup
+        try {
+          for (const file of files) {
+            await firebaseService.uploadFile(file.buffer, file.name, 'evidence');
+          }
+          logger.info('Files uploaded to Firebase', { count: files.length });
+        } catch (error: any) {
+          logger.warn('Firebase upload failed, continuing with IPFS only', { error: error.message });
+        }
       }
 
       // Calculate severity score
@@ -59,14 +71,34 @@ export const complaintService = {
         fir_number: null,
       });
 
-      // Submit to blockchain
+      // Submit to Polygon blockchain
+      let polygonTxHash = null;
       try {
-        const txHash = await blockchainService.submitComplaint(ipfsHash, severityScore);
-        await ComplaintModel.update(complaint.id, { blockchain_tx_hash: txHash });
-        logger.info('Complaint submitted to blockchain', { complaintId: complaint.id, txHash });
+        polygonTxHash = await blockchainService.submitComplaint(ipfsHash, severityScore);
+        await ComplaintModel.update(complaint.id, { blockchain_tx_hash: polygonTxHash });
+        logger.info('Complaint submitted to Polygon', { complaintId: complaint.id, txHash: polygonTxHash });
       } catch (error: any) {
-        logger.error('Blockchain submission failed', { error: error.message });
-        // Continue even if blockchain fails
+        logger.error('Polygon submission failed', { error: error.message });
+      }
+
+      // Also submit to Hyperledger (private/consortium blockchain)
+      try {
+        await hyperledgerService.createComplaint({
+          id: complaint.id,
+          complaint_number: complaint.complaint_number,
+          user_id: complaint.user_id,
+          crime_type: complaint.crime_type,
+          description: complaint.description,
+          status: complaint.status,
+          severity_score: complaint.severity_score,
+          ipfs_hash: complaint.ipfs_hash,
+          polygon_tx_hash: polygonTxHash || '',
+          created_at: complaint.created_at.toISOString(),
+        });
+        logger.info('Complaint submitted to Hyperledger', { complaintId: complaint.id });
+      } catch (error: any) {
+        logger.error('Hyperledger submission failed', { error: error.message });
+        // Continue even if Hyperledger fails
       }
 
       // Save evidence records

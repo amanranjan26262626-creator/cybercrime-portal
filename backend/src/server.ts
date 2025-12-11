@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import { connectMongoDB, testConnections } from './config/database';
+import { initializeFirebase } from './services/firebaseService';
 import logger from './utils/logger';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -65,9 +66,13 @@ async function startServer() {
     // Test database connections
     await testConnections();
     
+    // Initialize Firebase
+    initializeFirebase();
+    
     app.listen(PORT, () => {
       logger.info(`🚀 Server running on port ${PORT}`);
       logger.info(`📝 Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`✅ All services initialized`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
